@@ -69,7 +69,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\DebugCanvas.cs" />
+    <Compile Include="Assets\Scripts\DamageController.cs" />
+    <Compile Include="Assets\Scripts\DebugCanvas.cs" />
+    <Compile Include="Assets\Scripts\EnergyController.cs" />
     <Compile Include="Assets\Scripts\HealthController.cs" />
     <Compile Include="Assets\Scripts\PlayerController.cs" />
   </ItemGroup>

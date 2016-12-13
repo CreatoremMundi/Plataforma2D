@@ -4,10 +4,6 @@ using System.Collections;
 public class HealthController : MonoBehaviour {
 
     /// <summary>
-    /// Saúde atual do objeto
-    /// </summary>
-    public float health;
-    /// <summary>
     /// Saúde inicial do objeto
     /// </summary>
     public float startingHealth;
@@ -25,11 +21,15 @@ public class HealthController : MonoBehaviour {
     /// </summary>
     private float invulnerableCounter;
 
+    // Propriedades
     /// <summary>
     /// Indica se o objeto está invulnerável ou não.
     /// </summary>
-    [HideInInspector]
-    public bool isInvulnerable;
+    public bool IsInvulnerable { get; private set; }
+    /// <summary>
+    /// Saúde atual do objeto
+    /// </summary>
+    public float CurrentHealth { get; set; }
 
     // Eventos
     public delegate void EnterInvulnerableModeAction();
@@ -41,20 +41,25 @@ public class HealthController : MonoBehaviour {
     public delegate void ReachZeroHealthAction();
     public event ReachZeroHealthAction OnReachZeroHealth;
 
-    // Use this for initialization
     void Start () {
         // Atribui o valor inicial para a saúde do objeto.
         if (startingHealth <= 0)
-            health = 1;
+            CurrentHealth = 1;
         else if (startingHealth > maxHealth)
-            health = maxHealth;
+            CurrentHealth = maxHealth;
         else
-            health = startingHealth;
+            CurrentHealth = startingHealth;
+
+        // Implementação padrão dos delegates
+        OnEnterInvulnerableMode += () => { return; };
+        OnExitInvulnerableMode += () => { return; };
+        OnTakeDamage += (amount) => { return; };
+        OnReachZeroHealth += () => { return; };
+
     }
 	
-	// Update is called once per frame
 	void Update () {
-        if (isInvulnerable)
+        if (IsInvulnerable)
         {
             // Conta o tempo em que está invulnerável
             invulnerableCounter += Time.deltaTime;
@@ -63,7 +68,7 @@ public class HealthController : MonoBehaviour {
             if (invulnerableCounter >= invulnerableTime)
             {
                 invulnerableCounter = 0;
-                isInvulnerable = false;
+                IsInvulnerable = false;
 
                 // Chama o evento de sair do modo invulnerável
                 OnExitInvulnerableMode();
@@ -73,17 +78,17 @@ public class HealthController : MonoBehaviour {
 
     public void TakeDamage(float amount)
     {
-        if (isInvulnerable) // Se estiver no modo invulnerável, não recebe dano.
+        if (IsInvulnerable) // Se estiver no modo invulnerável, não recebe dano.
             return;
 
         // Remove a quantidade de saúde passada como parâmetro
-        health -= amount;
+        CurrentHealth -= amount;
 
         // Chama o evento ao receber dano
         OnTakeDamage(amount);
 
         // Chama evento ao zerar a saúde do objeto
-        if (health <= 0)
+        if (CurrentHealth <= 0)
         {
             OnReachZeroHealth();
         }
@@ -91,7 +96,7 @@ public class HealthController : MonoBehaviour {
         // Altera o estado para invulnerável caso seja necessário
         if (invulnerableTime > 0)
         {
-            isInvulnerable = true;
+            IsInvulnerable = true;
 
             // Chama o evento de entrar em modo invulnerável
             OnEnterInvulnerableMode();
