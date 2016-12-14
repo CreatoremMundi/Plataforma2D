@@ -10,6 +10,7 @@ public class PlayerController : MonoBehaviour {
     public float jumpForce;
     public float dodgeDistance;
     public float dodgeDuration;
+    public GameObject prefabEnergyBall;
     public LayerMask groundLayer;
     public float groundCheckSize;
     public bool debugMode;
@@ -39,6 +40,7 @@ public class PlayerController : MonoBehaviour {
     private HealthController healthController;
     private EnergyController energyController;
     private Transform sword;
+    private Transform energyBallSpawner;
 
     // Propriedades
     public bool IsLocked { get; set; }
@@ -53,6 +55,7 @@ public class PlayerController : MonoBehaviour {
         healthController = GetComponent<HealthController>();
         energyController = GetComponent<EnergyController>();
         sword = transform.FindChild("Sword");
+        energyBallSpawner = transform.FindChild("EnergyBallSpawner");
         clipAttack = (AnimationClip)AssetDatabase.LoadAssetAtPath("Assets/Animations/Player/PlayerAttack.anim", typeof(AnimationClip));
 
         healthController.OnTakeDamage += (amount) => {
@@ -148,6 +151,14 @@ public class PlayerController : MonoBehaviour {
         if (debugMode)
         {
             Debug();
+        }
+
+        if (Input.GetKeyDown(KeyCode.LeftControl))
+        {
+            if (energyController.Consume(25))
+            {
+                StartCoroutine(RangeAttack());
+            }
         }
     }
 
@@ -261,6 +272,16 @@ public class PlayerController : MonoBehaviour {
         } while (rb2d.velocity.x != 0 && rb2d.velocity.y != 0);
 
         IsLocked = false;
+    }
+
+    IEnumerator RangeAttack()
+    {
+        GameObject energyBall = Instantiate(prefabEnergyBall);
+        energyBall.transform.position = energyBallSpawner.position;
+        energyBall.GetComponent<AutoMovement>().direction = lookDirection;
+        energyBall.SetActive(true);
+
+        yield return null;
     }
 
     void OnDrawGizmosSelected()

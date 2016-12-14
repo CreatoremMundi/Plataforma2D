@@ -69,9 +69,11 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\Scripts\AutoMovement.cs" />
     <Compile Include="Assets\Scripts\DamageController.cs" />
     <Compile Include="Assets\Scripts\DebugCanvas.cs" />
     <Compile Include="Assets\Scripts\Enemy.cs" />
+    <Compile Include="Assets\Scripts\EnergyBall.cs" />
     <Compile Include="Assets\Scripts\EnergyController.cs" />
     <Compile Include="Assets\Scripts\HealthController.cs" />
     <Compile Include="Assets\Scripts\PlayerController.cs" />
