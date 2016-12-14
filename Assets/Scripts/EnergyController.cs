@@ -21,11 +21,14 @@ public class EnergyController : MonoBehaviour {
         }
 	}
 
-    public void Consume(float energy)
+    public bool Consume(float energy)
     {
         if(CurrentEnergy >= energy)
         {
             CurrentEnergy -= energy;
+            return true;
         }
+
+        return false;
     }
 }

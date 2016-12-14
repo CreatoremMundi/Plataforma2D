@@ -1,23 +1,25 @@
 ﻿using UnityEngine;
 using System.Collections;
+using UnityEditor;
 
 [RequireComponent(typeof(HealthController))]
 [RequireComponent(typeof(EnergyController))]
 public class PlayerController : MonoBehaviour {
+    // Atributos
     public float speed;
     public float jumpForce;
-
     public float dodgeDistance;
     public float dodgeDuration;
-
     public LayerMask groundLayer;
     public float groundCheckSize;
     public bool debugMode;
 
     private bool airJump = true;
     private Vector2 lookDirection;
+    private AnimationClip clipAttack;
 
     // Inputs
+    private bool pressAttack;
     private bool pressDodge;
     private bool pressJump;
     private bool holdDown;
@@ -36,6 +38,7 @@ public class PlayerController : MonoBehaviour {
     private SpriteRenderer spriteRenderer;
     private HealthController healthController;
     private EnergyController energyController;
+    private Transform sword;
 
     // Propriedades
     public bool IsLocked { get; set; }
@@ -49,6 +52,8 @@ public class PlayerController : MonoBehaviour {
         coll = GetComponent<BoxCollider2D>();
         healthController = GetComponent<HealthController>();
         energyController = GetComponent<EnergyController>();
+        sword = transform.FindChild("Sword");
+        clipAttack = (AnimationClip)AssetDatabase.LoadAssetAtPath("Assets/Animations/Player/PlayerAttack.anim", typeof(AnimationClip));
 
         healthController.OnTakeDamage += (amount) => {
             StopCoroutine("Dodge");
@@ -89,7 +94,13 @@ public class PlayerController : MonoBehaviour {
             }
             else if (pressDodge)
             {
-                StartCoroutine("Dodge");
+                if (energyController.Consume(10))
+                {
+                    StartCoroutine("Dodge");
+                }
+            }else if (pressAttack)
+            {
+                StartCoroutine(Attack());
             }
         }
     }
@@ -102,6 +113,7 @@ public class PlayerController : MonoBehaviour {
             axisHorizontal = 0;
             axisVertical = 0;
             pressHorizontal = false;
+            pressAttack = false;
             pressDodge = false;
             pressJump = false;
             holdDown = false;
@@ -111,6 +123,7 @@ public class PlayerController : MonoBehaviour {
             axisHorizontal = Input.GetAxis("Horizontal");
             pressHorizontal = Input.GetButton("Horizontal");
             axisVertical = Input.GetAxis("Vertical");
+            pressAttack = Input.GetButtonDown("Attack");
             pressDodge = Input.GetButtonDown("Dodge");
             pressJump = Input.GetButtonDown("Jump");
             holdDown = Input.GetAxisRaw("Vertical") == -1;
@@ -160,16 +173,19 @@ public class PlayerController : MonoBehaviour {
     /// </summary>
     private void Flip()
     {
+        Vector3 scale = transform.localScale;
+
         if (axisHorizontal > 0)
         {
-            spriteRenderer.flipX = false;
+            scale.x = Mathf.Abs(scale.x);
         }
         else if (axisHorizontal < 0)
         {
-            spriteRenderer.flipX = true;
+            scale.x = -Mathf.Abs(scale.x);
         }
 
-        lookDirection = spriteRenderer.flipX ? Vector2.left : Vector2.right;
+        transform.localScale = scale;
+        lookDirection = (Mathf.Sign(transform.localScale.x) == 1) ? Vector2.right : Vector2.left;
     }
 
     Bounds CalculateGroundCheckBounds()
@@ -178,6 +194,15 @@ public class PlayerController : MonoBehaviour {
         Vector2 size = new Vector2(coll.bounds.max.x - coll.bounds.min.x, groundCheckSize);
 
         return new Bounds(center, size);
+    }
+
+    IEnumerator Attack()
+    {
+        anim.SetTrigger("attack");
+        rb2d.velocity = new Vector2(0, rb2d.velocity.y);
+        IsLocked = true;
+        yield return new WaitForSeconds(clipAttack.length);
+        IsLocked = false;
     }
 
     IEnumerator Blink(float delayBetweenBlinks, float duration)
