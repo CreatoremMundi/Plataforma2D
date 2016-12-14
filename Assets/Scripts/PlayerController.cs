@@ -22,6 +22,8 @@ public class PlayerController : MonoBehaviour {
     // Inputs
     private bool pressAttack;
     private bool pressDodge;
+    private bool pressRangedAttack;
+    private bool pressAreaAttack;
     private bool pressJump;
     private bool holdDown;
     private bool pressHorizontal;
@@ -41,6 +43,7 @@ public class PlayerController : MonoBehaviour {
     private EnergyController energyController;
     private Transform sword;
     private Transform energyBallSpawner;
+    private GameObject areaAttack;
 
     // Propriedades
     public bool IsLocked { get; set; }
@@ -56,6 +59,8 @@ public class PlayerController : MonoBehaviour {
         energyController = GetComponent<EnergyController>();
         sword = transform.FindChild("Sword");
         energyBallSpawner = transform.FindChild("EnergyBallSpawner");
+        areaAttack = transform.FindChild("AreaAttack").gameObject;
+
         clipAttack = (AnimationClip)AssetDatabase.LoadAssetAtPath("Assets/Animations/Player/PlayerAttack.anim", typeof(AnimationClip));
 
         healthController.OnTakeDamage += (amount) => {
@@ -101,9 +106,24 @@ public class PlayerController : MonoBehaviour {
                 {
                     StartCoroutine("Dodge");
                 }
-            }else if (pressAttack)
+            }
+            else if (pressAttack)
             {
                 StartCoroutine(Attack());
+            }
+            else if (pressRangedAttack)
+            {
+                if (energyController.Consume(25))
+                {
+                    StartCoroutine(RangeAttack());
+                }
+            }
+            else if (pressAreaAttack && grounded)
+            {
+                if (energyController.Consume(50))
+                {
+                    StartCoroutine(AreaAttack());
+                }
             }
         }
     }
@@ -118,6 +138,8 @@ public class PlayerController : MonoBehaviour {
             pressHorizontal = false;
             pressAttack = false;
             pressDodge = false;
+            pressRangedAttack = false;
+            pressAreaAttack = false;
             pressJump = false;
             holdDown = false;
         }
@@ -127,7 +149,9 @@ public class PlayerController : MonoBehaviour {
             pressHorizontal = Input.GetButton("Horizontal");
             axisVertical = Input.GetAxis("Vertical");
             pressAttack = Input.GetButtonDown("Attack");
-            pressDodge = Input.GetButtonDown("Dodge");
+            pressDodge = Input.GetButtonDown("Skill1");
+            pressRangedAttack = Input.GetButtonDown("Skill2");
+            pressAreaAttack = Input.GetButtonDown("Skill3");
             pressJump = Input.GetButtonDown("Jump");
             holdDown = Input.GetAxisRaw("Vertical") == -1;
         }
@@ -151,14 +175,6 @@ public class PlayerController : MonoBehaviour {
         if (debugMode)
         {
             Debug();
-        }
-
-        if (Input.GetKeyDown(KeyCode.LeftControl))
-        {
-            if (energyController.Consume(25))
-            {
-                StartCoroutine(RangeAttack());
-            }
         }
     }
 
@@ -213,6 +229,15 @@ public class PlayerController : MonoBehaviour {
         rb2d.velocity = new Vector2(0, rb2d.velocity.y);
         IsLocked = true;
         yield return new WaitForSeconds(clipAttack.length);
+        IsLocked = false;
+    }
+
+    IEnumerator AreaAttack()
+    {
+        IsLocked = true;
+        areaAttack.SetActive(true);
+        yield return new WaitForSeconds(0.5f);
+        areaAttack.SetActive(false);
         IsLocked = false;
     }
 
