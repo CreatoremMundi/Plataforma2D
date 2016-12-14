@@ -236,6 +236,7 @@ public class PlayerController : MonoBehaviour {
     {
         IsLocked = true;
         areaAttack.SetActive(true);
+        rb2d.velocity = new Vector2(0, rb2d.velocity.y);
         yield return new WaitForSeconds(0.5f);
         areaAttack.SetActive(false);
         IsLocked = false;

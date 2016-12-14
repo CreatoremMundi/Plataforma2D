@@ -31,4 +31,21 @@ public class EnergyController : MonoBehaviour {
 
         return false;
     }
+
+    public void Add(float amount)
+    {
+        if (Mathf.Sign(amount) == -1)
+            throw new System.Exception("O valor para ser adicionado à energia não pode ser negativo");
+
+        float newEnergy = CurrentEnergy + amount;
+
+        if (newEnergy > maxEnergy)
+        {
+            CurrentEnergy = maxEnergy;
+        }
+        else
+        {
+            CurrentEnergy = newEnergy;
+        }
+    }
 }

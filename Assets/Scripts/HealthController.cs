@@ -102,4 +102,20 @@ public class HealthController : MonoBehaviour {
             OnEnterInvulnerableMode();
         }
     }
+
+    public void Add(float amount)
+    {
+        if (Mathf.Sign(amount) == -1)
+            throw new System.Exception("O valor para ser adicionado à saúde não pode ser negativo");
+
+        float newHealth = CurrentHealth + amount;
+
+        if(newHealth > maxHealth)
+        {
+            CurrentHealth = maxHealth;
+        }else
+        {
+            CurrentHealth = newHealth;
+        }
+    }
 }
