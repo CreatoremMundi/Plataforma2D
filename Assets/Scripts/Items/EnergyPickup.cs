@@ -5,9 +5,9 @@ using UnityEngine;
 
 public class EnergyPickup : Pickup
 {
-    protected override void Regenerate(Transform target)
+    protected override void Regenerate(Transform player)
     {
-        EnergyController energy = target.GetComponent<EnergyController>();
+        EnergyController energy = player.GetComponent<EnergyController>();
 
         if (energy != null)
         {

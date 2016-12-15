@@ -5,9 +5,9 @@ using UnityEngine;
 
 public class HealthPickup : Pickup
 {
-    protected override void Regenerate(Transform target)
+    protected override void Regenerate(Transform player)
     {
-        HealthController health = target.GetComponent<HealthController>();
+        HealthController health = player.GetComponent<HealthController>();
 
         if (health != null)
         {
