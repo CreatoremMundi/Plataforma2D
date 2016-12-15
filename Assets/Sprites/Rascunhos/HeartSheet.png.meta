@@ -1,12 +1,15 @@
 fileFormatVersion: 2
 guid: 40c5dbb407a012a4ab224b33806cda97
-timeCreated: 1481683165
+timeCreated: 1481831386
 licenseType: Free
 TextureImporter:
   fileIDToRecycleName:
     21300000: sprites_heart_life_by_yukikootomiye-dalt7ak_0
     21300002: sprites_heart_life_by_yukikootomiye-dalt7ak_1
     21300004: sprites_heart_life_by_yukikootomiye-dalt7ak_2
+    21300006: HeartSheet_0
+    21300008: HeartSheet_1
+    21300010: HeartSheet_2
   serializedVersion: 4
   mipmaps:
     mipMapMode: 0
@@ -33,7 +36,7 @@ TextureImporter:
     filterMode: -1
     aniso: -1
     mipBias: -1
-    wrapMode: 0
+    wrapMode: 1
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
@@ -69,43 +72,59 @@ TextureImporter:
     crunchedCompression: 0
     allowsAlphaSplitting: 0
     overridden: 0
+  - buildTarget: iPhone
+    maxTextureSize: 2048
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+  - buildTarget: Android
+    maxTextureSize: 2048
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: sprites_heart_life_by_yukikootomiye-dalt7ak_0
+      name: HeartSheet_0
       rect:
         serializedVersion: 2
-        x: 8
-        y: 7
-        width: 277
-        height: 267
+        x: 16
+        y: 26
+        width: 265
+        height: 230
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       tessellationDetail: 0
     - serializedVersion: 2
-      name: sprites_heart_life_by_yukikootomiye-dalt7ak_1
+      name: HeartSheet_1
       rect:
         serializedVersion: 2
-        x: 307
-        y: 8
-        width: 281
-        height: 266
+        x: 309
+        y: 21
+        width: 265
+        height: 230
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       tessellationDetail: 0
     - serializedVersion: 2
-      name: sprites_heart_life_by_yukikootomiye-dalt7ak_2
+      name: HeartSheet_2
       rect:
         serializedVersion: 2
-        x: 595
-        y: 8
-        width: 283
-        height: 266
+        x: 602
+        y: 19
+        width: 265
+        height: 230
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
