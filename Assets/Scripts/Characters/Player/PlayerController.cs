@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using UnityEditor;
+using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(HealthController))]
 [RequireComponent(typeof(EnergyController))]
@@ -26,13 +27,14 @@ public class PlayerController : MonoBehaviour {
     private bool pressAreaAttack;
     private bool pressJump;
     private bool holdDown;
+    private bool holdShield;
     private bool pressHorizontal;
     private float axisHorizontal;
     private float axisVertical;
 
     // States
     private bool grounded;
-    private bool locked;
+    private bool shielding;
 
     // Components
     private Animator anim;
@@ -44,6 +46,7 @@ public class PlayerController : MonoBehaviour {
     private Transform sword;
     private Transform energyBallSpawner;
     private GameObject areaAttack;
+    private GameObject shield;
 
     // Propriedades
     public bool IsLocked { get; set; }
@@ -60,6 +63,7 @@ public class PlayerController : MonoBehaviour {
         sword = transform.FindChild("Sword");
         energyBallSpawner = transform.FindChild("EnergyBallSpawner");
         areaAttack = transform.FindChild("AreaAttack").gameObject;
+        shield = transform.FindChild("Shield").gameObject;
 
         clipAttack = (AnimationClip)AssetDatabase.LoadAssetAtPath("Assets/Animations/Player/PlayerAttack.anim", typeof(AnimationClip));
 
@@ -74,13 +78,18 @@ public class PlayerController : MonoBehaviour {
             StartCoroutine(Knockback(7));
             anim.SetTrigger("getHit");
         };
+
+        healthController.OnReachZeroHealth += () =>
+        {
+            StartCoroutine("RestartScene");
+        };
     }
 
     void FixedUpdate()
     {
         if (!IsLocked)
         {
-            if (!(holdDown && grounded)) // crouching
+            if (!(holdDown && grounded) && !shielding) // crouching
             {
                 // Movimenta o personagem
                 Vector2 movement = new Vector2(axisHorizontal * speed, rb2d.velocity.y);
@@ -99,6 +108,9 @@ public class PlayerController : MonoBehaviour {
                     airJump = false;
                     Jump();
                 }
+            }else if (holdShield && !shielding)
+            {
+                StartCoroutine("Shield");
             }
             else if (pressDodge)
             {
@@ -142,6 +154,7 @@ public class PlayerController : MonoBehaviour {
             pressAreaAttack = false;
             pressJump = false;
             holdDown = false;
+            holdShield = false;
         }
         else
         {
@@ -154,6 +167,7 @@ public class PlayerController : MonoBehaviour {
             pressAreaAttack = Input.GetButtonDown("Skill3");
             pressJump = Input.GetButtonDown("Jump");
             holdDown = Input.GetAxisRaw("Vertical") == -1;
+            holdShield = Input.GetButton("Skill4");
         }
         
 
@@ -242,6 +256,43 @@ public class PlayerController : MonoBehaviour {
         IsLocked = false;
     }
 
+    IEnumerator Shield()
+    {
+        shielding = true;
+        shield.SetActive(true);
+        Shield shieldController = shield.transform.FindChild("ShieldObject").GetComponent<Shield>();
+        energyController.Consume(1);
+        float counter = 0;
+        while (holdShield && energyController.CurrentEnergy > 0)
+        {
+            counter += Time.deltaTime;
+            if(counter >= 0.2f)
+            {
+                counter = 0;
+                energyController.Consume(1);
+            }
+
+            float rawAxisVertical = Input.GetAxisRaw("Vertical");
+            if (axisVertical > 0)
+            {
+                shieldController.ShieldUp();
+            }
+            else if (axisVertical < 0 && !grounded)
+            {
+                shieldController.ShieldDown();
+            }
+            else
+            {
+                shieldController.ShieldHorizontally();
+            }
+
+            //yield return new WaitForEndOfFrame();
+            yield return null;
+        }
+        shield.SetActive(false);
+        shielding = false;
+    }
+
     IEnumerator Blink(float delayBetweenBlinks, float duration)
     {
         float counter = 0;
@@ -308,6 +359,15 @@ public class PlayerController : MonoBehaviour {
         energyBall.SetActive(true);
 
         yield return null;
+    }
+
+    IEnumerator RestartScene()
+    {
+        IsLocked = true;
+        anim.SetTrigger("died");
+        
+        yield return new WaitForSeconds(2);
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
     void OnDrawGizmosSelected()

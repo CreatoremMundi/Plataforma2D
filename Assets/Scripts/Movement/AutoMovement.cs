@@ -9,6 +9,8 @@ public class AutoMovement : MonoBehaviour {
 
 	void Start () {
         rb2d = GetComponent<Rigidbody2D>();
+
+        direction.Normalize();
 	}
 	
     void FixedUpdate()
@@ -19,7 +21,11 @@ public class AutoMovement : MonoBehaviour {
         }
     }
 
-	void Update () {
-	
-	}
+    void Update()
+    {
+        if(rb2d == null)
+        {
+            transform.position = direction * speed * Time.deltaTime;
+        }
+    }
 }

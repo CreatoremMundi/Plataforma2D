@@ -5,13 +5,13 @@ using System.Collections;
 public class Enemy : MonoBehaviour {
     private HealthController healthController;
 
-    void Start () {
+    protected virtual void Start () {
         healthController = GetComponent<HealthController>();
 
         healthController.OnReachZeroHealth += Die;
 	}
 	
-	private void Die()
+	protected void Die()
     {
         Destroy(this.gameObject);
     }
