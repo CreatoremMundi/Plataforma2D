@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Linq;
 using UnityEditor;
 using UnityEngine.SceneManagement;
 
@@ -20,21 +21,11 @@ public class PlayerController : MonoBehaviour {
     private Vector2 lookDirection;
     private AnimationClip clipAttack;
 
-    // Inputs
-    private bool pressAttack;
-    private bool pressDodge;
-    private bool pressRangedAttack;
-    private bool pressAreaAttack;
-    private bool pressJump;
-    private bool holdDown;
-    private bool holdShield;
-    private bool pressHorizontal;
-    private float axisHorizontal;
-    private float axisVertical;
-
     // States
     private bool grounded;
     private bool shielding;
+    private bool crouched;
+    private bool grabed;
 
     // Components
     private Animator anim;
@@ -89,99 +80,90 @@ public class PlayerController : MonoBehaviour {
     {
         if (!IsLocked)
         {
-            if (!(holdDown && grounded) && !shielding) // crouching
-            {
-                // Movimenta o personagem
-                Vector2 movement = new Vector2(axisHorizontal * speed, rb2d.velocity.y);
-                rb2d.velocity = movement;
-            }
+            // Movimentação do personagem
+            Move();
 
-            // Aplica a física de pulo
-            if (pressJump)
+            // Último botão pressionado (para saber qual deverá ser a próxima ação)
+            PlayerAction currentAction = InputManager.Instance.Triggers.lastPressed;
+
+            // Só realiza ação se ela for permitida, já que dependendo do estado do jogador
+            // algumas ações não podem ser realizada
+            if (currentAction != PlayerAction.None && IsActionAllowed(currentAction))
             {
-                if (grounded)
+                switch (currentAction)
                 {
-                    Jump();
+                    case PlayerAction.Attack:
+                        StartCoroutine(Attack());
+                        break;
+
+
+                    case PlayerAction.Grab:
+                        break;
+
+
+                    case PlayerAction.Jump:
+                        if (grounded)
+                        {
+                            Jump();
+                        }
+                        else if (airJump)
+                        {
+                            airJump = false;
+                            Jump();
+                        }
+
+                        break;
+
+
+                    case PlayerAction.SkillAreaAttack:
+                        if (energyController.Consume(50))
+                        {
+                            StartCoroutine(AreaAttack());
+                        }
+                        break;
+
+
+                    case PlayerAction.SkillDodge:
+                        if (energyController.Consume(10))
+                        {
+                            StartCoroutine("Dodge");
+                        }
+                        break;
+
+
+                    case PlayerAction.SkillRangedAttack:
+                        if (energyController.Consume(25))
+                        {
+                            StartCoroutine(RangeAttack());
+                        }
+                        break;
+
+
+                    case PlayerAction.SkillShield:
+                        StartCoroutine("Shield");
+                        break;
                 }
-                else if (airJump)
-                {
-                    airJump = false;
-                    Jump();
-                }
-            }else if (holdShield && !shielding)
-            {
-                StartCoroutine("Shield");
-            }
-            else if (pressDodge)
-            {
-                if (energyController.Consume(10))
-                {
-                    StartCoroutine("Dodge");
-                }
-            }
-            else if (pressAttack)
-            {
-                StartCoroutine(Attack());
-            }
-            else if (pressRangedAttack)
-            {
-                if (energyController.Consume(25))
-                {
-                    StartCoroutine(RangeAttack());
-                }
-            }
-            else if (pressAreaAttack && grounded)
-            {
-                if (energyController.Consume(50))
-                {
-                    StartCoroutine(AreaAttack());
-                }
+
+                InputManager.Instance.DeactivateTriggers();
             }
         }
     }
 
     void Update()
     {
-        // Verifica os botões pressionado pelo jogador
-        if (IsLocked)
-        {
-            axisHorizontal = 0;
-            axisVertical = 0;
-            pressHorizontal = false;
-            pressAttack = false;
-            pressDodge = false;
-            pressRangedAttack = false;
-            pressAreaAttack = false;
-            pressJump = false;
-            holdDown = false;
-            holdShield = false;
-        }
-        else
-        {
-            axisHorizontal = Input.GetAxis("Horizontal");
-            pressHorizontal = Input.GetButton("Horizontal");
-            axisVertical = Input.GetAxis("Vertical");
-            pressAttack = Input.GetButtonDown("Attack");
-            pressDodge = Input.GetButtonDown("Skill1");
-            pressRangedAttack = Input.GetButtonDown("Skill2");
-            pressAreaAttack = Input.GetButtonDown("Skill3");
-            pressJump = Input.GetButtonDown("Jump");
-            holdDown = Input.GetAxisRaw("Vertical") == -1;
-            holdShield = Input.GetButton("Skill4");
-        }
-        
-
         // Verifica se está tocando o chão (para evitar pulos enquanto estiver no ar)
         Bounds groundCheckBounds = CalculateGroundCheckBounds();
         grounded = Physics2D.BoxCast(groundCheckBounds.center, groundCheckBounds.size, 0, Vector2.right, 0, groundLayer) && rb2d.velocity.y == 0;
         if (grounded)
             airJump = true;
 
+        // Atualiza o estado de "abaixado"
+        crouched = InputManager.Instance.Holds.down && grounded && !shielding;
+
         // Atualiza os estados das animações
         anim.SetFloat("velocityX", Mathf.Abs(rb2d.velocity.x));
         anim.SetBool("grounded", grounded);
-        anim.SetBool("holdDown", holdDown);
-        anim.SetBool("pressHorizontal", pressHorizontal);
+        anim.SetBool("crouched", crouched);
 
         // Vira o personagem de acordo com a direção que ele está indo
         Flip();
@@ -193,14 +175,28 @@ public class PlayerController : MonoBehaviour {
     }
 
     /// <summary>
+    /// Atualiza o movimento do jogador nas direções permitidas.
+    /// </summary>
+    private void Move()
+    {
+        Vector2 movement = rb2d.velocity;
+
+        if(IsActionAllowed(PlayerAction.MoveHorizontally))
+            movement.x = InputManager.Instance.AxisHorizontal * speed;
+
+        if(IsActionAllowed(PlayerAction.MoveVertically))
+            movement.y = InputManager.Instance.AxisVertical * speed;
+
+        rb2d.velocity = movement;
+    }
+
+    /// <summary>
     /// Aplica a física de pulo para o jogador
     /// </summary>
     private void Jump()
     {
         // Atualiza a animação
         anim.SetTrigger("jump");
-        // Desabilita o input da ação para evitar um impulso extra
-        pressJump = false;
 
         // Antes de aplicar o impulso, é zerado o movimento vertical que o objeto está fazendo
         // para evitar que o impsulso do pulo duplu seja maior, já que ele vai adicionar a força 
@@ -216,11 +212,11 @@ public class PlayerController : MonoBehaviour {
     {
         Vector3 scale = transform.localScale;
 
-        if (axisHorizontal > 0)
+        if (InputManager.Instance.AxisHorizontal > 0)
         {
             scale.x = Mathf.Abs(scale.x);
         }
-        else if (axisHorizontal < 0)
+        else if (InputManager.Instance.AxisHorizontal < 0)
         {
             scale.x = -Mathf.Abs(scale.x);
         }
@@ -236,6 +232,7 @@ public class PlayerController : MonoBehaviour {
 
         return new Bounds(center, size);
     }
+
 
     IEnumerator Attack()
     {
@@ -263,7 +260,7 @@ public class PlayerController : MonoBehaviour {
         Shield shieldController = shield.transform.FindChild("ShieldObject").GetComponent<Shield>();
         energyController.Consume(1);
         float counter = 0;
-        while (holdShield && energyController.CurrentEnergy > 0)
+        while (InputManager.Instance.Holds.shield && energyController.CurrentEnergy > 0)
         {
             counter += Time.deltaTime;
             if(counter >= 0.2f)
@@ -272,12 +269,11 @@ public class PlayerController : MonoBehaviour {
                 energyController.Consume(1);
             }
 
-            float rawAxisVertical = Input.GetAxisRaw("Vertical");
-            if (axisVertical > 0)
+            if (InputManager.Instance.AxisVertical > 0)
             {
                 shieldController.ShieldUp();
             }
-            else if (axisVertical < 0 && !grounded)
+            else if (InputManager.Instance.AxisVertical < 0 && !grounded)
             {
                 shieldController.ShieldDown();
             }
@@ -286,7 +282,6 @@ public class PlayerController : MonoBehaviour {
                 shieldController.ShieldHorizontally();
             }
 
-            //yield return new WaitForEndOfFrame();
             yield return null;
         }
         shield.SetActive(false);
@@ -313,7 +308,6 @@ public class PlayerController : MonoBehaviour {
 
     IEnumerator Dodge()
     {
-        pressDodge = false;
         float x = lookDirection == Vector2.right ? rb2d.position.x + dodgeDistance : rb2d.position.x - dodgeDistance;
         Vector2 startPos = rb2d.position;
         Vector2 endPos = new Vector2(x, rb2d.position.y);
@@ -370,6 +364,70 @@ public class PlayerController : MonoBehaviour {
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
+    public bool IsActionAllowed(PlayerAction action)
+    {
+        if (grabed)
+        {
+            return
+                new PlayerAction[] {
+                    PlayerAction.MoveHorizontally,
+                    PlayerAction.MoveVertically,
+                    PlayerAction.Jump,
+                    PlayerAction.SkillDodge
+                }.Contains(action);
+        }
+        else if (crouched)
+        {
+            return
+                new PlayerAction[] {
+                    PlayerAction.Jump,
+                    PlayerAction.Attack,
+                    PlayerAction.SkillAreaAttack,
+                    PlayerAction.SkillDodge,
+                    PlayerAction.SkillRangedAttack,
+                    PlayerAction.SkillShield
+                }.Contains(action);
+        }
+        else if (shielding)
+        {
+            return
+                new PlayerAction[] {
+                    PlayerAction.Jump,
+                }.Contains(action);
+        }
+        else if (grounded)
+        {
+            return
+                new PlayerAction[] {
+                    PlayerAction.MoveHorizontally,
+                    PlayerAction.Crouch,
+                    PlayerAction.Grab,
+                    PlayerAction.Jump,
+                    PlayerAction.Attack,
+                    PlayerAction.SkillAreaAttack,
+                    PlayerAction.SkillDodge,
+                    PlayerAction.SkillRangedAttack,
+                    PlayerAction.SkillShield
+                }.Contains(action);
+        }
+        else if (!grounded)
+        {
+            return
+                new PlayerAction[] {
+                    PlayerAction.MoveHorizontally,
+                    PlayerAction.Crouch,
+                    PlayerAction.Grab,
+                    PlayerAction.Jump,
+                    PlayerAction.Attack,
+                    PlayerAction.SkillDodge,
+                    PlayerAction.SkillRangedAttack,
+                    PlayerAction.SkillShield
+                }.Contains(action);
+        }
+
+        return false;
+    }
+
     void OnDrawGizmosSelected()
     {
         coll = GetComponent<BoxCollider2D>();
@@ -398,7 +456,7 @@ public class PlayerController : MonoBehaviour {
             DebugCanvas canvas = debugScreen.GetComponent<DebugCanvas>();
 
             canvas.Show(0, string.Format("Grounded: {0}", grounded ? "Yes" : "No"));
-            canvas.Show(1, string.Format("Holding Down: {0}", holdDown ? "Yes" : "No"));
+            canvas.Show(1, string.Format("Crouched: {0}", crouched ? "Yes" : "No"));
             canvas.Show(2, string.Format("Health: {0}", healthController.CurrentHealth));
             canvas.Show(3, string.Format("Energy: {0}", energyController.CurrentEnergy));
             canvas.Show(4, Time.time.ToString());
