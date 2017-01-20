@@ -6,7 +6,7 @@ using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(HealthController))]
 [RequireComponent(typeof(EnergyController))]
-public class PlayerController : MonoBehaviour {
+public class PlayerController : CharacterController {
     // Atributos
     public float speed;
     public float jumpForce;
@@ -30,8 +30,6 @@ public class PlayerController : MonoBehaviour {
     // Components
     private Animator anim;
     private BoxCollider2D coll;
-    private Rigidbody2D rb2d;
-    private SpriteRenderer spriteRenderer;
     private HealthController healthController;
     private EnergyController energyController;
     private Transform sword;
@@ -39,15 +37,12 @@ public class PlayerController : MonoBehaviour {
     private GameObject areaAttack;
     private GameObject shield;
 
-    // Propriedades
-    public bool IsLocked { get; set; }
-
-    void Start()
+    protected override void Start()
     {
+        base.Start();
+
         // Inicia os componenetes
         anim = GetComponent<Animator>();
-        rb2d = GetComponent<Rigidbody2D>();
-        spriteRenderer = GetComponent<SpriteRenderer>();
         coll = GetComponent<BoxCollider2D>();
         healthController = GetComponent<HealthController>();
         energyController = GetComponent<EnergyController>();
@@ -65,8 +60,8 @@ public class PlayerController : MonoBehaviour {
 
         healthController.OnEnterInvulnerableMode += () =>
         {
-            StartCoroutine(Blink(0.15f, healthController.invulnerableTime));
-            StartCoroutine(Knockback(7));
+            Blink(0.15f, healthController.invulnerableTime);
+            Knockback(7, new Vector2(-lookDirection.x, 1));
             anim.SetTrigger("getHit");
         };
 
@@ -288,24 +283,6 @@ public class PlayerController : MonoBehaviour {
         shielding = false;
     }
 
-    IEnumerator Blink(float delayBetweenBlinks, float duration)
-    {
-        float counter = 0;
-        bool toggleColor = false;
-        Color defaultColor = spriteRenderer.color;
-
-        while (counter <= duration)
-        {
-            spriteRenderer.color = toggleColor ? Color.clear : defaultColor;
-            toggleColor = !toggleColor;
-
-            yield return new WaitForSeconds(delayBetweenBlinks);
-            counter += delayBetweenBlinks + Time.deltaTime;
-        }
-
-        spriteRenderer.color = defaultColor;
-    }
-
     IEnumerator Dodge()
     {
         float x = lookDirection == Vector2.right ? rb2d.position.x + dodgeDistance : rb2d.position.x - dodgeDistance;
@@ -327,20 +304,6 @@ public class PlayerController : MonoBehaviour {
 
             yield return null;
         }
-
-        IsLocked = false;
-    }
-
-    IEnumerator Knockback(float force)
-    {
-        rb2d.velocity = new Vector2(0, 0);
-        rb2d.AddForce(new Vector2(-lookDirection.x, 1) * force, ForceMode2D.Impulse);
-
-        IsLocked = true;
-        do
-        {
-            yield return new WaitForEndOfFrame();
-        } while (rb2d.velocity.x != 0 && rb2d.velocity.y != 0);
 
         IsLocked = false;
     }
