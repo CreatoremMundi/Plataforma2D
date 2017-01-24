@@ -26,6 +26,7 @@ public struct InputTrigger
 public struct InputHold
 {
     public bool shield;
+    public bool up;
     public bool down;
 }
 
@@ -146,6 +147,7 @@ public class InputManager : MonoBehaviour {
             
         // Holding Buttons 
         _holds.shield = Input.GetButton("Skill4");
+        _holds.up = Input.GetAxisRaw("Vertical") == 1;
         _holds.down = Input.GetAxisRaw("Vertical") == -1;
     }
 

@@ -215,7 +215,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1000012952331676}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -2.5, z: 0}
+  m_LocalPosition: {x: 79.9, y: 4.1, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4000013846209390}
@@ -361,7 +361,7 @@ BoxCollider2D:
   m_GameObject: {fileID: 1000012952331676}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: dbec8c966e8b1104b8a521644b9d9c81, type: 2}
   m_IsTrigger: 0
   m_UsedByEffector: 0
   m_Offset: {x: 0, y: 0}
@@ -481,6 +481,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   speed: 10
   jumpForce: 14
+  grabedSpeed: 6
   dodgeDistance: 4
   dodgeDuration: 0.2
   prefabEnergyBall: {fileID: 1000010954615444, guid: 4bbc06434782b7840815d4049f1568b5,

@@ -10,6 +10,7 @@ public class PlayerController : CharacterController {
     // Atributos
     public float speed;
     public float jumpForce;
+    public float grabedSpeed;
     public float dodgeDistance;
     public float dodgeDuration;
     public GameObject prefabEnergyBall;
@@ -18,6 +19,7 @@ public class PlayerController : CharacterController {
     public bool debugMode;
 
     private bool airJump = true;
+    private bool gridArea = false;
     private Vector2 lookDirection;
     private AnimationClip clipAttack;
 
@@ -36,6 +38,9 @@ public class PlayerController : CharacterController {
     private Transform energyBallSpawner;
     private GameObject areaAttack;
     private GameObject shield;
+
+    public int PropA { get; set; }
+    public int PropB { get; set; }
 
     protected override void Start()
     {
@@ -93,20 +98,15 @@ public class PlayerController : CharacterController {
 
 
                     case PlayerAction.Grab:
+                        if (gridArea)
+                        {
+                            StartGrab();
+                        }
                         break;
 
 
                     case PlayerAction.Jump:
-                        if (grounded)
-                        {
-                            Jump();
-                        }
-                        else if (airJump)
-                        {
-                            airJump = false;
-                            Jump();
-                        }
-
+                        Jump();
                         break;
 
 
@@ -148,17 +148,22 @@ public class PlayerController : CharacterController {
     {
         // Verifica se está tocando o chão (para evitar pulos enquanto estiver no ar)
         Bounds groundCheckBounds = CalculateGroundCheckBounds();
-        grounded = Physics2D.BoxCast(groundCheckBounds.center, groundCheckBounds.size, 0, Vector2.right, 0, groundLayer) && rb2d.velocity.y == 0;
-        if (grounded)
+        grounded = Physics2D.BoxCast(groundCheckBounds.center, groundCheckBounds.size, 0, Vector2.right, 0, groundLayer);
+        if (grounded || grabed)
             airJump = true;
 
         // Atualiza o estado de "abaixado"
         crouched = InputManager.Instance.Holds.down && grounded && !shielding;
 
+        // Sai da grade/escada ao tocar no chão
+        if (grabed && grounded)
+            StopGrab();
+
         // Atualiza os estados das animações
         anim.SetFloat("velocityX", Mathf.Abs(rb2d.velocity.x));
         anim.SetBool("grounded", grounded);
         anim.SetBool("crouched", crouched);
+        anim.SetBool("grabed", grabed);
 
         // Vira o personagem de acordo com a direção que ele está indo
         Flip();
@@ -169,6 +174,23 @@ public class PlayerController : CharacterController {
         }
     }
 
+    void OnTriggerEnter2D(Collider2D coll)
+    {
+        if (coll.CompareTag("Grid"))
+        {
+            gridArea = true;
+        }
+    }
+
+    void OnTriggerExit2D(Collider2D coll)
+    {
+        if (coll.CompareTag("Grid"))
+        {
+            gridArea = false;
+            StopGrab();
+        }
+    }
+
     /// <summary>
     /// Atualiza o movimento do jogador nas direções permitidas.
     /// </summary>
@@ -176,11 +198,11 @@ public class PlayerController : CharacterController {
     {
         Vector2 movement = rb2d.velocity;
 
-        if(IsActionAllowed(PlayerAction.MoveHorizontally))
-            movement.x = InputManager.Instance.AxisHorizontal * speed;
+        if (IsActionAllowed(PlayerAction.MoveHorizontally))
+            movement.x = InputManager.Instance.AxisHorizontal * (grabed ? grabedSpeed : speed);
 
-        if(IsActionAllowed(PlayerAction.MoveVertically))
-            movement.y = InputManager.Instance.AxisVertical * speed;
+        if (IsActionAllowed(PlayerAction.MoveVertically))
+            movement.y = InputManager.Instance.AxisVertical * (grabed ? grabedSpeed : speed);
 
         rb2d.velocity = movement;
     }
@@ -190,6 +212,11 @@ public class PlayerController : CharacterController {
     /// </summary>
     private void Jump()
     {
+        if (!grounded && !grabed && airJump)
+            airJump = false;
+
+        StopGrab();
+
         // Atualiza a animação
         anim.SetTrigger("jump");
 
@@ -327,65 +354,70 @@ public class PlayerController : CharacterController {
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
+    private void StartGrab()
+    {
+        grabed = true;
+        rb2d.isKinematic = true;
+
+        // Move o personagem um pouco para cima para que ele saia do chão. Isso é necessário pois quando 
+        // ele toca o chão, ele sai do modo "Grabed"
+        rb2d.MovePosition(new Vector2(rb2d.position.x, rb2d.position.y + groundCheckSize));
+    }
+
+    private void StopGrab()
+    {
+        grabed = false;
+        rb2d.isKinematic = false;
+    }
+
     public bool IsActionAllowed(PlayerAction action)
     {
         if (grabed)
         {
             return
-                new PlayerAction[] {
-                    PlayerAction.MoveHorizontally,
-                    PlayerAction.MoveVertically,
-                    PlayerAction.Jump,
-                    PlayerAction.SkillDodge
-                }.Contains(action);
+                action == PlayerAction.MoveHorizontally ||
+                action == PlayerAction.MoveVertically ||
+                action == PlayerAction.Jump ||
+                action == PlayerAction.SkillDodge;
         }
         else if (crouched)
         {
             return
-                new PlayerAction[] {
-                    PlayerAction.Jump,
-                    PlayerAction.Attack,
-                    PlayerAction.SkillAreaAttack,
-                    PlayerAction.SkillDodge,
-                    PlayerAction.SkillRangedAttack,
-                    PlayerAction.SkillShield
-                }.Contains(action);
+                action == PlayerAction.Jump ||
+                action == PlayerAction.Attack ||
+                action == PlayerAction.SkillAreaAttack ||
+                action == PlayerAction.SkillDodge ||
+                action == PlayerAction.SkillRangedAttack ||
+                action == PlayerAction.SkillShield;
         }
         else if (shielding)
         {
             return
-                new PlayerAction[] {
-                    PlayerAction.Jump,
-                }.Contains(action);
+                action == PlayerAction.Jump && (grounded || airJump);
         }
         else if (grounded)
         {
             return
-                new PlayerAction[] {
-                    PlayerAction.MoveHorizontally,
-                    PlayerAction.Crouch,
-                    PlayerAction.Grab,
-                    PlayerAction.Jump,
-                    PlayerAction.Attack,
-                    PlayerAction.SkillAreaAttack,
-                    PlayerAction.SkillDodge,
-                    PlayerAction.SkillRangedAttack,
-                    PlayerAction.SkillShield
-                }.Contains(action);
+                action == PlayerAction.MoveHorizontally ||
+                action == PlayerAction.Crouch ||
+                action == PlayerAction.Grab ||
+                action == PlayerAction.Jump ||
+                action == PlayerAction.Attack ||
+                action == PlayerAction.SkillAreaAttack ||
+                action == PlayerAction.SkillDodge ||
+                action == PlayerAction.SkillRangedAttack ||
+                action == PlayerAction.SkillShield;
         }
         else if (!grounded)
         {
             return
-                new PlayerAction[] {
-                    PlayerAction.MoveHorizontally,
-                    PlayerAction.Crouch,
-                    PlayerAction.Grab,
-                    PlayerAction.Jump,
-                    PlayerAction.Attack,
-                    PlayerAction.SkillDodge,
-                    PlayerAction.SkillRangedAttack,
-                    PlayerAction.SkillShield
-                }.Contains(action);
+                action == PlayerAction.MoveHorizontally ||
+                action == PlayerAction.Grab ||
+                (action == PlayerAction.Jump && airJump) ||
+                action == PlayerAction.Attack ||
+                action == PlayerAction.SkillDodge ||
+                action == PlayerAction.SkillRangedAttack ||
+                action == PlayerAction.SkillShield;
         }
 
         return false;
@@ -422,7 +454,10 @@ public class PlayerController : CharacterController {
             canvas.Show(1, string.Format("Crouched: {0}", crouched ? "Yes" : "No"));
             canvas.Show(2, string.Format("Health: {0}", healthController.CurrentHealth));
             canvas.Show(3, string.Format("Energy: {0}", energyController.CurrentEnergy));
-            canvas.Show(4, Time.time.ToString());
+            canvas.Show(4, string.Format("Tempo: {0}",Time.time.ToString()));
+            canvas.Show(5, string.Format("Grid Area: {0}", gridArea ? "Yes" : "No"));
+            canvas.Show(6, string.Format("Grabed: {0}", grabed ? "Yes" : "No"));
+            canvas.Show(7, string.Format("Air Jump: {0}", airJump ? "Yes" : "No"));
         }
     }
 }
