@@ -1,8 +1,6 @@
 ﻿using UnityEngine;
-using System.Collections;
-using System.Linq;
-using UnityEditor;
 using UnityEngine.SceneManagement;
+using System.Collections;
 
 [RequireComponent(typeof(HealthController))]
 [RequireComponent(typeof(EnergyController))]
@@ -21,7 +19,7 @@ public class PlayerController : CharacterController {
     private bool airJump = true;
     private bool gridArea = false;
     private Vector2 lookDirection;
-    private AnimationClip clipAttack;
+    public AnimationClip clipAttack;
 
     // States
     private bool grounded;
@@ -39,8 +37,7 @@ public class PlayerController : CharacterController {
     private GameObject areaAttack;
     private GameObject shield;
 
-    public int PropA { get; set; }
-    public int PropB { get; set; }
+    public bool IsGrounded { get { return grounded; } }
 
     protected override void Start()
     {
@@ -56,7 +53,7 @@ public class PlayerController : CharacterController {
         areaAttack = transform.FindChild("AreaAttack").gameObject;
         shield = transform.FindChild("Shield").gameObject;
 
-        clipAttack = (AnimationClip)AssetDatabase.LoadAssetAtPath("Assets/Animations/Player/PlayerAttack.anim", typeof(AnimationClip));
+        //clipAttack = (AnimationClip)AssetDatabase.LoadAssetAtPath("Assets/Animations/Player/PlayerAttack.anim", typeof(AnimationClip));
 
         healthController.OnTakeDamage += (amount) => {
             StopCoroutine("Dodge");
